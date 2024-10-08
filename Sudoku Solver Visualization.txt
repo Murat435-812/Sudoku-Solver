@@ -1,0 +1,208 @@
+import sys, pygame
+from pygame.locals import*
+pygame.font.init()
+
+width = 800
+height = 600
+screen_color = (255, 255, 255)
+line_color = (0, 0, 0)
+
+table = [[0, 0, 0, 0, 0, 0, 9, 0, 7],
+         [0, 0, 0, 4, 2, 0, 1, 8, 0],
+         [0, 0, 0, 7, 0, 5, 0, 2, 6],
+         [1, 0, 0, 9, 0, 4, 0, 0, 0],
+         [0, 5, 0, 0, 0, 0, 0, 4, 0],
+         [0, 0, 0, 5, 0, 7, 0, 0, 9],
+         [9, 2, 0, 1, 0, 8, 0, 0, 0],
+         [0, 3, 4, 0, 5, 9, 0, 0, 0],
+         [5, 0, 7, 0, 0, 0, 0, 0, 0]]
+
+def writeTable(arr):
+
+    table = []
+    for i in range(0, 9):
+        temp = []
+        for num in arr[i]:
+            temp.append(int(num))
+        table.append(temp)
+    return table
+
+def isValid(table,num,i,j):
+    for x in range(9):
+        if num == table[i][x]:
+            return False
+
+    for x in range(9):
+        if num == table[x][j]:
+            return False
+
+    box_i,box_j = i // 3, j // 3
+    for x in range(box_i * 3,box_i * 3 + 3):
+        for y in range(box_j * 3 , box_j * 3 + 3):
+            if table[x][y] == num:
+                return False
+
+    return True
+
+def isBlank(tbl):
+    for j in range(9):
+        for i in range(9):
+            if tbl[i][j] == 0:
+                return (i,j)
+    return False
+
+f = open('Filse/p096_sudoku.txt', 'r')
+
+arr = []
+
+i = 0
+for row in f:
+    row = row.split('\n')
+    if i >0 and i <10:
+        arr.append(row[0])
+    else:
+        i = 0
+    i += 1
+
+n = len(arr)
+
+#okunan dosyadaki sudokuyu çözmek için alt satır aktif olmalı
+temp_tbl = writeTable(arr[18:27])
+print(temp_tbl)
+#kendi isteğinize bağlı bir sudoku çözmek için ise alttaki satır aktif olmalı
+#bu durumda 10. satırdaki table isimli matriste sudokudaki boş kareleri 0 dolu kareleri ise ilgiili rakamla doldurunuz.
+temp_tbl = table
+
+def drawLines(screen,width,square,x_pad,y_pad):
+    tickness = 1
+    for i in range(10):
+        if i == 0 or (i) % 3 == 0:
+            tickness = 5
+            lcolor = (65, 209, 222)
+        else:
+            tickness = 2
+            lcolor = (140, 255, 245)
+        pygame.draw.line(screen, lcolor, (x_pad, i*square + y_pad ), (width+x_pad, i*square + y_pad),tickness)
+    for i in range(10):
+        if i == 0 or (i) % 3 == 0:
+            tickness = 5
+            lcolor = (65, 209, 222)
+        else:
+            tickness = 2
+            lcolor = (140, 255, 245)
+
+        pygame.draw.line(screen, lcolor, (i*square + x_pad, y_pad), (i*square + x_pad, width + y_pad),tickness)
+
+# Metni oluştur (metin, antialias, renk)
+
+font = pygame.font.Font(None, 50)
+
+def pingTheVisitedCells(screen,stack,ms,x_pad,y_pad):
+    for node in stack:
+        if node:
+            r,c = node[0],node[1]
+            x,y = x_pad + r * ms , y_pad + c * ms
+            pygame.draw.rect(screen,(0,255,0),pygame.Rect(x,y,ms,ms))
+
+def locateNumsInTable(screen,table,mw,ms,x_pad,y_pad):
+    BLACK = (0, 0, 0)
+
+    for i in range(9):
+        for j in range(9):
+            if table[i][j] == 0:
+                text = font.render('', True, BLACK)
+                screen.blit(text, (ms * i + x_pad + ms // 2.5, ms * j + y_pad + ms // 4))
+            else:
+                text = font.render(str(table[i][j]), True, BLACK)
+                screen.blit(text, (ms * i + x_pad + ms // 2.5, ms * j + y_pad + ms // 4))
+
+def startButton(screen,button_rect):
+    button_text = font.render("Solve", True, (255,255,255))
+    text_rect = button_text.get_rect(center=button_rect.center)
+    pygame.draw.rect(screen, (60, 20, 150), button_rect)
+    screen.blit(button_text, text_rect)
+
+def fasterButton(screen,button_rect):
+    button_text = font.render("Fast", True, (255,255,255))
+    text_rect = button_text.get_rect(center=button_rect.center)
+    pygame.draw.rect(screen, (60, 20, 150), button_rect)
+    screen.blit(button_text, text_rect)
+
+def slowerButton(screen,button_rect):
+    button_text = font.render("Slower", True, (255,255,255))
+    text_rect = button_text.get_rect(center=button_rect.center)
+    pygame.draw.rect(screen, (60, 20, 150), button_rect)
+    screen.blit(button_text, text_rect)
+
+def main():
+    width = 1200
+    height = 800
+    screen=pygame.display.set_mode((width,height))
+    screen.fill(screen_color)
+    start = False
+    matrix_width, matrix_square = 630,70
+
+    x_pad,y_pad = (width - matrix_width) // 2, (height- matrix_width) // 2
+    button_rect_start = pygame.Rect(150,20, 150, 60)
+    button_rect_faster = pygame.Rect(370,20, 150, 60)
+    button_rect_slower = pygame.Rect(590,20, 150, 60)
+
+    tbl = temp_tbl
+
+    stack = [isBlank(tbl)]
+    path = ''
+    visited = set()
+    isFound = False
+    clock = pygame.time.Clock()
+    speed = 3
+    while True:
+        for events in pygame.event.get():
+            if events.type == QUIT:
+                sys.exit(0)
+            if events.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()  # Mouse konumunu al
+                if button_rect_start.collidepoint(mouse_pos):
+                    start = not start
+                if button_rect_faster.collidepoint(mouse_pos):
+                    speed += 10
+                if button_rect_slower.collidepoint(mouse_pos):
+                    speed -= 10
+                    if speed <= 3:
+                        speed = 3
+
+
+        if not isFound and start:
+            top = stack[-1]
+            isAnyValidNum = False
+            for num in range(1, 10):
+                if isValid(tbl, num, top[0], top[1]) and path + str(num) + '_' not in visited:
+                    tbl[top[0]][top[1]] = num
+                    stack.append(isBlank(tbl))
+                    if isBlank(tbl) == False:
+                        isFound = True
+                    isAnyValidNum = True
+                    path += str(num) + '_'
+                    visited.add(path)
+                    break
+            if isAnyValidNum == False:
+                popped = stack.pop()
+                tbl[popped[0]][popped[1]] = 0
+                path = path[:-2]
+
+        screen.fill(screen_color)
+        pingTheVisitedCells(screen,stack,matrix_square,x_pad,y_pad)
+        drawLines(screen,matrix_width,matrix_square,x_pad,y_pad)
+        locateNumsInTable(screen,temp_tbl,matrix_width,matrix_square,x_pad,y_pad)
+        if stack[-1] == False:
+            text = font.render("Solved!", True, (0,255,0))
+            screen.blit(text, (810,30))
+        if stack[-1] != False:
+            text = font.render("Solving!", True, (0,0,0))
+            screen.blit(text, (810,30))
+        startButton(screen,button_rect_start)
+        fasterButton(screen,button_rect_faster)
+        slowerButton(screen,button_rect_slower)
+
+        pygame.display.flip()
+        clock.tick(speed)
+main()

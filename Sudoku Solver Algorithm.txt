@@ -1,0 +1,95 @@
+def writeTable(arr):
+    # Bu fonksiyon 9x9 Sudoku tablosunu integer değerlere çeviriyor.
+    table = []
+    for i in range(0, 9):
+        temp = []
+        for num in arr[i]:
+            temp.append(int(num))  # Her elemanı integer'a çevirerek geçici bir listeye ekler.
+        table.append(temp)  # 9x9 tabloyu oluşturur.
+    return table
+
+
+def isValid(table, num, i, j):
+    # Bu fonksiyon belirli bir hücreye verilen 'num' sayısının geçerli olup olmadığını kontrol eder.
+
+    # Aynı satırda num var mı diye kontrol eder
+    for x in range(9):
+        if num == table[i][x]:
+            return False
+
+    # Aynı sütunda num var mı diye kontrol eder
+    for x in range(9):
+        if num == table[x][j]:
+            return False
+
+    # Aynı 3x3 kutuda num var mı diye kontrol eder
+    box_i, box_j = i // 3, j // 3
+    for x in range(box_i * 3, box_i * 3 + 3):
+        for y in range(box_j * 3, box_j * 3 + 3):
+            if table[x][y] == num:
+                return False
+
+    return True  # Yukarıdaki kontrollerden geçerse, sayı geçerlidir.
+
+
+def isBlank(tbl):
+    # Bu fonksiyon tabloda boş hücre var mı kontrol eder ve ilk boş hücrenin indeksini döner.
+    for i in range(9):
+        for j in range(9):
+            if tbl[i][j] == 0:  # Eğer hücrede 0 varsa boş demektir.
+                return (i, j)  # Boş hücrenin (satır, sütun) indeksini döner.
+    return False  # Eğer boş hücre yoksa False döner.
+
+
+def solver(tbl):
+    # Bu fonksiyon Sudoku çözme algoritmasını gerçekleştirir.
+
+    stack = [isBlank(tbl)]  # İlk boş hücreyi yığına (stack) ekler.
+    path = ''  # Çözüme ulaşırken kullanılan sayıları tutar.
+    visited = set()  # Ziyaret edilen hücreleri kaydeder.
+    isFound = False  # Çözüm bulunup bulunmadığını takip eder.
+
+    while not isFound:  # Çözüm bulunana kadar döner.
+        top = stack[-1]  # Yığındaki son elemanı alır (son boş hücre).
+        isAnyValidNum = False  # Geçerli bir numara bulunup bulunmadığını kontrol eder.
+
+        # 1'den 9'a kadar olan sayıları dene
+        for num in range(1, 10):
+            if isValid(tbl, num, top[0], top[1]) and path + str(num) + '_' not in visited:
+                # Eğer numara geçerli ve bu numara daha önce ziyaret edilmediyse:
+
+                tbl[top[0]][top[1]] = num  # Bu boş hücreye num yerleştir.
+                stack.append(isBlank(tbl))  # Bir sonraki boş hücreyi bul ve yığına ekle.
+
+                if isBlank(tbl) == False:  # Eğer tablo tamamen dolduysa (boş hücre yoksa):
+                    isFound = True  # Çözüm bulundu.
+
+                isAnyValidNum = True  # Geçerli bir numara bulundu.
+                path += str(num) + '_'  # Yol bilgisine ekle.
+                visited.add(path)  # Bu yolu ziyaret edilenlere ekle.
+                break
+
+        if not isAnyValidNum:
+            # Eğer geçerli bir numara bulunamadıysa, bir önceki hücreye geri dön.
+            popped = stack.pop()  # Yığından hücreyi çıkar (geri al).
+            tbl[popped[0]][popped[1]] = 0  # Bu hücreyi tekrar boş yap.
+            path = path[:-2]  # Son eklenen numarayı yol bilgisinden çıkar.
+
+
+# Sudoku tablosu (çözülmemiş).
+table = [[8, 0, 0, 4, 0, 0, 2, 0, 0],
+         [0, 0, 6, 5, 0, 0, 0, 0, 0],
+         [1, 0, 0, 0, 6, 2, 0, 7, 0],
+         [0, 0, 3, 0, 2, 1, 8, 0, 0],
+         [0, 0, 0, 0, 0, 4, 0, 0, 0],
+         [0, 8, 0, 0, 0, 0, 0, 5, 0],
+         [0, 0, 1, 0, 3, 8, 5, 0, 0],
+         [0, 0, 0, 6, 0, 0, 0, 0, 0],
+         [7, 0, 0, 0, 0, 0, 0, 0, 9]]
+
+# Sudoku çözücüyü çalıştır.
+solver(tbl=table)
+
+# Çözülen Sudoku tablosunu yazdır.
+for row in table:
+    print(row)
